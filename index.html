@@ -1,0 +1,507 @@
+import os
+import matplotlib.pyplot as plt
+
+def t_split(text):
+    text = text.lower()
+    lst = [',', '.', '!', '?', '"', "'", ':', ';', '(',')', '‘', '’', '”', '“', '-', '_']
+    for s in lst:
+        text = text.replace(s, '')
+    words = text.split()
+    words = [w for w in words if w.isalpha() and w.isascii()]
+    
+    return words
+    
+
+def count_words(words):
+    word_count = {w:0 for w in words}
+    for w in words:
+        if w in word_count:
+            word_count[w] += 1
+    return word_count
+
+def ranking(word_count):
+    items = list(word_count.items())
+    n = len(items)
+
+    for i in range(n):
+        for j in range(0, n- i - 1):
+            if items[j][1] < items[j + 1][1]:
+                temp = items[j]
+                items[j] = items[j + 1]
+                items[j + 1] = temp
+                
+    return items
+    
+def word_length(words):
+    word_lengths = [len(w) for w in words if w.isalpha()]
+    return min(word_lengths), max(word_lengths), sum(word_lengths) / len(word_lengths)
+
+def ranking_bar(word_count):
+    rank = ranking(word_count)[:10]
+    if not rank:
+        print('No words...')
+        return 
+    labels = [w for w, _ in rank]
+    counts = [c for _, c in rank]
+
+    plt.figure(figsize=(8, 5))
+    plt.bar(labels, counts)
+    plt.title('Top 10 Most common words')
+    plt.xlabel('word')
+    plt.ylabel('frequency')
+    plt.show()
+
+load_content = ""
+load_filename= ''
+
+print('Welcome to the Text Analyser!')
+print('This programme analyses text files and provides statistical insights.')
+print()
+
+while True:
+    print('==================================================')
+    print('           TEXT ANALYSER')
+    print('==================================================')
+    print('1. Load text file')
+    print('2. Display basic statistics')
+    print('3. Word frequency analysis')
+    print('4. Sentence analysis')
+    print('5. Character analysis')
+    print('6. Export results')
+    print('7. Exit')
+    print('==================================================')
+    print()
+    
+    if not load_filename:
+        print('No file loaded')
+    else:
+        print(f'Current file: {load_filename}')
+    print()
+
+    choice = input('Enter your chioce (1-7): ')
+    print()
+    
+    if choice == '7':
+        print('Thank you for using Text Analyser!')
+        break
+        
+    elif choice == '1':
+        print('--- File Selection ---')
+        print('Available text files:')
+
+        files = []
+        for f in os.listdir():
+            if f.endswith('.txt'):
+                files.append(f)
+
+        if len(files) == 0:
+            print('No files found in current directory.')
+            print()
+            continue
+
+        i = 1
+        for f in files:
+            print(f'  {i}. {f}')
+            i += 1
+
+        print()
+
+        choice1 = input('Enter filename or number from list above: ').strip()
+
+        if choice1.isdigit():
+            num = int(choice1)
+            if 1 <= num <= len(files):
+                filename = files[num - 1]
+            else:
+                print('Invalid number.')
+                print()
+                continue
+
+        else:
+            filename = choice1
+
+        if os.path.exists(filename):
+
+            load_filename = filename
+
+            load_content = ''
+            with open(filename,'r', encoding='utf-8') as f:
+                for line in f:
+                    load_content += line
+                    
+            print(f'Successfully loaded: {filename}')
+
+        else:
+            print('File not found. Please check the name and try again.')
+
+            print()
+
+    elif choice == '2':
+        if not load_content:
+            print('Please load a text file first!')
+        else:
+            lines = load_content.split('\n')
+            n_lines = len(lines)
+
+            paragraphs = [p for p in load_content.split('\n\n') if p.strip() != '']
+            n_paragraphs = len(paragraphs)
+
+            n_sentences = load_content.count('.')
+
+
+            words = load_content.split()
+            n_words = len(words)
+
+            unique_set = set(words)
+            
+            n_uniques = len(unique_set)
+
+            n_ch_with = len(load_content)
+            n_ch_without = len(load_content.replace(' ', '').replace('\n', ''))
+            
+
+            average_w = n_words / n_lines if n_lines > 0 else 0
+            average_l = n_ch_with / n_words if n_words > 0 else 0
+            average_s = n_words / n_sentences if n_sentences > 0 else 0
+            
+
+            print(f'--- Basic Statistics for "{load_filename}" --')
+            print(f'Lines: {n_lines}')
+            print(f'Paragraphs: {n_paragraphs}')
+            print(f'Sentences: {n_sentences}')
+            print(f'Words: {n_words}')
+            print(f'Unique words: {n_uniques}')
+            print(f'Characters (with spaces): {n_ch_with}')
+            print(f'Characters (without spaces): {n_ch_without}')
+            print(f'Average words per line: {average_w:.1f}')
+            print(f'Average word length: {average_l:.1f}')
+            print(f'Average words per sentence: {average_s:.1f}')
+            print()
+
+            print('Generating basic statistics visualisation...')
+
+            labels = ['Lines', 'Words', 'Characters']
+            values = [n_lines, n_words, n_ch_with]
+
+            plt.figure(figsize=(8, 4))
+            plt.bar(labels, values)
+            plt.title('Basic Text Statistics')
+            plt.xlabel('Category')
+            plt.ylabel('Count')
+            plt.show()
+
+    elif choice == '3':
+        if not load_content:
+            print('Please load a text file first!')
+            print()
+        else:
+            print(f'--- Word Analysis for "{load_filename}" ---')
+
+            words = t_split(load_content)
+            word_count = count_words(words)
+            total = len(words)
+
+            print('Top 10 most common words:')
+            sorted_words = ranking(word_count)[:10]
+            i = 1
+            for key, value in sorted_words:
+                percent = (value / total) * 100
+                print(f'{i:>2}. {key:<10}{value:>5} times   ({percent:>3.1f}%)')
+                i += 1
+            print()
+            
+            print('Word length statistics:')
+            word_lengths = [len(w) for w in words if w.isalpha() and w.isascii()]
+            shortest, longest, average_len = word_length(words)
+
+            if shortest is None:
+                print('  No valid words found!')
+            else:
+                print(f'  Shortest word: {shortest} characters')
+                print(f'  Longest word: {longest} characters')
+                print(f'  Average word length: {average_len:.1f} characters')
+
+            unique_words = [w for w, c in word_count.items() if c == 1]
+            print(f'Words appearing only once: {len(unique_words)}')
+            print()
+
+            print('Ganerating word analysis visualisation...')
+            ranking_bar(word_count)
+            print()
+
+    elif choice == '4':
+        if not load_content:
+            print('Please load a text file first!')
+            print()
+        else:
+            print(f'--- Sentence Analysis for "{load_filename}" ---')
+
+            sentences = [s.strip() for s in load_content.split('.') if s.strip()]
+            n_sentences = len(sentences)
+
+            if n_sentences == 0:
+                print('No sentences found...')
+                print()
+                continue
+
+            word_counts = [len(s.split()) for s in sentences]
+            avg_words = sum(word_counts) / n_sentences
+            shortest = min(word_counts)
+            longest = max(word_counts)
+
+            shortest_sentence = sentences[word_counts.index(shortest)]
+            longest_sentence = sentences[word_counts.index(longest)]
+            tuple1 = (shortest_sentence, longest_sentence)
+            
+
+            print(f' Total sentences: {n_sentences}')
+            print(f' Average words per sentence: {avg_words:.1f}')
+            print(f' Shortest sentence: {shortest} words')
+            print(f' Lnogest sentence: {longest} words')
+            print(f' Shortest sentence text: {tuple1[0][:100]}')
+            print(f' Longest sentence text: {tuple1[1][:100]}...')
+            print()
+
+            times = {}
+            for a in word_countsso:
+                times[a] = times.get(a, 0) + 1
+
+            items = list(times.items())
+            sorted_items = sorted(items,reverse=True)
+
+            top5 = sorted_items[:5]
+            print(f' Sentence length distribution (top 5):')
+            for key1, value1 in top5:
+                print(f'   {key1} words: {value1} sentences')
+            print()
+
+            print('Ganerating sentence analysis visualisation...')
+            plt.figure(figsize=(8, 4))
+            plt.hist(word_counts, bins=30, color='purple', edgecolor='black')
+            plt.title('Sentence Length Distribution')
+            plt.xlabel('Words per sentence')
+            plt.ylabel('Number of sentences')
+            plt.show()
+            print()
+
+    elif choice == '5':
+        if not load_content:
+            print('Please load a text file first!')
+            print()
+        else:
+            print(f'--- Character Analysis for "{load_filename}" ---')
+
+            letters = 0
+            digits = 0
+            spaces = 0
+            punctuation = 0
+
+            lst = [',', '.', '!', '?', '"', "'", ':', ';', '(',')', '‘', '’', '”', '“', '-', '_']
+
+            letter_count = {c1:0 for c1 in load_content}
+
+            for c1 in load_content:
+                if c1.isalpha():
+                    letters += 1
+                    letter_count[c1] += 1
+
+                elif c1.isdigit():
+                    digits += 1
+                elif c1 == ' ':
+                    spaces += 1
+                elif c1 in lst:
+                    punctuation += 1
+            total = len(load_content)
+            per_l = (letters / total) * 100
+            per_d = (digits / total) * 100
+            per_s = (spaces / total) * 100
+            per_p = (punctuation / total) * 100
+
+            print('Character type distribution:')
+            print(f'  Letters: {letters} ({per_l:.1f}%)')
+            print(f'  Digits: {digits} ({per_d:.1f}%)')
+            print(f'  Spaces: {spaces} ({per_s:.1f}%)')
+            print(f'  Punctuation: {punctuation} ({per_p:.1f}%)')
+            print()
+
+            items_c = list(letter_count.items())
+            n = len(items_c)
+
+            for i in range(n):
+                for j in range(0, n - i - 1):
+                    if items_c[j][1] < items_c[j + 1][1]:
+                        temp = items_c[j]
+                        items_c[j] = items_c[j + 1]
+                        items_c[j + 1] = temp
+            c_rank = items_c[:10]
+            
+            print('  Most common letters: ')
+            rank = 1
+            for key1, value1 in c_rank:
+                percent_c = (value1 / letters) * 100
+                print(f'    {rank}. "{key1}" - {value1} times ({percent_c:.1f}%)')
+                rank += 1
+
+            labels1 = [k for k, _ in c_rank]
+            counts1 = [c for _, c in c_rank]
+
+            print('Ganerating character analysis visualisation...')
+            plt.figure(figsize=(8, 5))
+            plt.bar(labels1, counts1)
+            plt.title('Top 10 most common letters')
+            plt.xlabel('letter')
+            plt.ylabel('frequency')
+            plt.show()
+
+    elif choice == '6':
+        if not load_content:
+            print('Please load a text file first!')
+            print()
+        else:
+            if not os.path.exists('results'):
+                os.makedirs('results')
+
+            out_name = 'results/' + load_filename + '_results.txt'
+
+            import datetime
+            now = datetime.datetime.now()
+
+            with open(out_name, 'w') as f:
+
+                f.write('==============================\n')
+                f.write('Text Analysis Results\n')
+                f.write('==============================\n')
+                f.write(f'File analysed: {load_filename}\n')
+                f.write(f'Analysis date: {now}\n\n')
+                
+
+                lines = load_content.split('\n')
+                paragraphs = [p for p in load_content.split('\n\n') if p.strip()]
+                sentences = [s for s in load_content.split('.') if s.strip()]
+                words = load_content.split()
+
+                unique_lst = []
+                for w in words:
+                    if w not in unique_lst:
+                        unique_lst.append(w)
+
+                f.write('Basic Statistic\n')
+                f.write('---------------\n')
+                f.write(f'Lines: {len(lines)}\n')
+                f.write(f'Paragraphs: {len(paragraphs)}\n')
+                f.write(f'Sentences: {len(sentences)}\n')
+                f.write(f'Words: {len(words)}\n\n')
+                f.write(f'Unique words: {len(unique_lst)}\n')
+                f.write(f'Characters (with spaces): {len(load_content)}\n')
+                f.write(f'Characters (without spaces): {len(load_content.replace(" ", "").replace("\\n", ""))}\n')
+
+                avg_line = len(words) / len(lines)
+                avg_len = len(load_content) / len(words)
+                avg_sentence = len(words) / len(sentences)
+
+                f.write(f'Average words per line: {avg_line:.1f}\n')
+                f.write(f'Average word length: {avg_len:.1f} characters\n')
+                f.write(f'Average words per sentence: {avg_sentence:.1f}\n\n')
+
+
+                
+                f.write('Top 10 Most Common Words\n')
+                f.write('------------------------\n')
+                ws = t_split(load_content)
+                wc = count_words(ws)
+                rank_10 = ranking(wc)[:10]
+                total_words = len(wc)
+
+                rank = 1
+                for key2, value2 in rank_10:
+                    percent = (value2 / total_words) * 100
+                    f.write(f'{rank}. {key2:<10}{value2:>5} times ({percent:>5.1f}%)\n')
+                    rank += 1
+                f.write('\n')
+
+
+                f.write('Word Statistics\n')
+                f.write('---------------\n')
+                ws = t_split(load_content)
+                word_lengths = [len(w) for w in ws if w.isalpha and w.isascii()]
+                
+                shortest = min(word_lengths)
+                longest = max(word_lengths)
+                avg_len = sum(word_lengths) / len(word_lengths)
+
+                f.write(f'Shortest word: {shortest} characters\n')
+                f.write(f'Longest word: {longest} characters\n')
+        
+                unique1 = [w for w, c in wc.items() if c == 1]
+                f.write(f'Words appearing only once: {len(unique1)}\n\n')
+
+                f.write('Sentence Statistics\n')
+                f.write('-------------------\n')
+                word_count = [len(s.split()) for s in sentences]
+
+                s_shortest = min(word_count)
+                s_longest = max(word_count)
+
+                t_shortest = sentences[word_counts.index(s_shortest)]
+                t_longest = sentences[word_counts.index(s_longest)]
+
+                f.write(f'Total sentences: {len(sentences)}\n')
+                f.write(f'Shortest sentence: {s_shortest} words\n')
+                f.write(f'Longest sentence: {s_longest} words\n')
+                f.write(f'Shortest sentence text: {t_shortest[:100]}\n')
+                f.write(f'Longest sentence text: {t_longest[:100]}...\n\n')
+
+
+                f.write('Character Statistics\n')
+                f.write('--------------------\n')
+
+                letters = 0
+                digits = 0
+                spaces = 0
+                punctuation = 0
+
+                lst = [',', '.', '!', '?', '"', "'", ':', ';', '(',')', '‘', '’', '”', '“', '-', '_']
+                letter_count = {}
+
+                for c2 in load_content.lower():
+                    if c2.isalpha():
+                        letters += 1
+                        letter_count[c2] = letter_count.get(c2, 0) + 1
+                        
+    
+                    elif c2.isdigit():
+                        digits += 1
+                    elif c2 == ' ':
+                        spaces += 1
+                    elif c2 in lst:
+                        punctuation += 1
+
+                total = len(load_content)
+                per_l = (letters / total) * 100
+                per_d = (digits / total) * 100
+                per_s = (spaces / total) * 100
+                per_p = (punctuation / total) * 100
+    
+                f.write(f'  Letters: {letters} ({per_l:.1f}%)\n')
+                f.write(f'  Digits: {digits} ({per_d:.1f}%)\n')
+                f.write(f'  Spaces: {spaces} ({per_s:.1f}%)\n')
+                f.write(f'  Punctuation: {punctuation} ({per_p:.1f}%)\n')
+                f.write('\n')
+
+                
+                f.write('Top 10 most Common Letters\n')
+                f.write('--------------------------\n')
+                rank_letters = ranking(letter_count)[:10]
+
+                rank = 1
+                for key3, value3 in rank_letters:
+                    percent = (value3 / letters) * 100
+                    f.write(f'    {rank}. "{key3}" - {value3} times ({percent:.1f}%)\n')
+                    rank += 1
+
+
+
+                f.write('==============================\n')
+                f.write('End of Analysis Report\n')
+                f.write('==============================\n')
+            print(f'Results exported to "{out_name}"')
